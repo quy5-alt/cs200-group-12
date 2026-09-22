@@ -1,7 +1,8 @@
 **Manage Provider Records**
 
-Use Case: Manage Provider Records 
-Context: Lets a ChocAn Operator add, update, or delete provider records at the Data Center. 
+**Use Case:** Manage Provider Records 
+
+**Context:** Lets a ChocAn Operator add, update, or delete provider records at the Data Center. 
 Actors: ChocAn Operator
 
 **Main Success Scenario:**
