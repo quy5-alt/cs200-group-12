@@ -1,0 +1,114 @@
+PASTE INTO EXISTING src/chocan/boundary/ProviderTerminalUI.java
+Do not replace Task 1's complete file.
+
+Required imports (add only if missing):
+import chocan.entity.Service;
+import java.util.Locale;
+
+Required private fields (add inside class):
+private String currentMemberNumber;
+private boolean serviceCancelled;
+private String reenteredCode;
+
+Assumes Task 1 fields: Scanner in; ValidationController val; ServiceController sc; String providerNumber.
+
+/** Prompts for a member number and displays its status. */
+public void validateMember() {
+    System.out.print("Enter member number: ");
+    String number = in.nextLine().trim();
+    display(val.validateMember(number));
+}
+
+/** Records a service for a validated member. */
+public void recordService() {
+    serviceCancelled = false;
+    currentMemberNumber = null;
+    System.out.print("Enter member number: ");
+    String number = in.nextLine().trim();
+    String status = val.validateMember(number);
+    if (!status.equals("Validated")) {
+        display(status);
+        return;
+    }
+    currentMemberNumber = number;
+    display("Validated");
+    enterServiceDate();
+    if (serviceCancelled) return;
+    enterServiceCode();
+    if (serviceCancelled) return;
+    enterComments();
+    double fee = sc.commitRecord();
+    if (fee < 0) {
+        showError("Service record could not be saved.");
+        return;
+    }
+    display("Service recorded.");
+    display(String.format(Locale.US, "Fee to be paid: $%.2f", fee));
+}
+
+/** Prompts until a valid service date or cancellation. */
+public void enterServiceDate() {
+    while (true) {
+        System.out.print("Date service was provided (MM-DD-YYYY), or 0 to cancel: ");
+        String date = in.nextLine().trim();
+        if (date.equals("0")) {
+            serviceCancelled = true;
+            return;
+        }
+        if (sc.beginRecord(providerNumber, currentMemberNumber, date)) return;
+        showError("Invalid date. Use MM-DD-YYYY.");
+    }
+}
+
+/** Prompts for and confirms a valid service code. */
+public void enterServiceCode() {
+    System.out.print("Enter 6-digit service code: ");
+    String code = in.nextLine().trim();
+    while (true) {
+        Service service = sc.lookupService(code);
+        if (service == null) {
+            showError("Invalid service code");
+            promptReenterCode();
+            if (serviceCancelled) return;
+            code = reenteredCode;
+            continue;
+        }
+        display("Service: " + service.getName());
+        while (true) {
+            System.out.print("Is this the service provided? (Y/N): ");
+            String answer = in.nextLine().trim();
+            if (answer.equalsIgnoreCase("Y")) return;
+            if (answer.equalsIgnoreCase("N")) {
+                System.out.print("Enter 6-digit service code: ");
+                code = in.nextLine().trim();
+                if (code.equals("0")) {
+                    serviceCancelled = true;
+                    return;
+                }
+                break;
+            }
+            showError("Invalid option");
+        }
+    }
+}
+
+/** Reads optional comments of at most 100 characters. */
+public void enterComments() {
+    while (true) {
+        System.out.print("Comments (optional, max 100 characters, press Enter to skip): ");
+        String text = in.nextLine();
+        if (text.length() > 100) {
+            showError("Comments must be 100 characters or fewer.");
+            continue;
+        }
+        if (!text.isEmpty()) sc.setComments(text);
+        return;
+    }
+}
+
+/** Requests another code or cancels service entry. */
+public void promptReenterCode() {
+    System.out.print("Enter the service code again, or 0 to cancel: ");
+    reenteredCode = in.nextLine().trim();
+    if (reenteredCode.equals("0")) serviceCancelled = true;
+}
